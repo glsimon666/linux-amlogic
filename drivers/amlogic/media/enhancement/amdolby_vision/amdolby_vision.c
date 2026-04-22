@@ -97,6 +97,10 @@ static unsigned int dolby_vision_profile = 0xff;
 module_param(dolby_vision_profile, uint, 0664);
 MODULE_PARM_DESC(dolby_vision_profile, "\n dolby_vision_profile\n");
 
+static unsigned int dolby_vision_cuva_priority = 0; /* 0: DV priority, 1: CUVA priority */
+module_param(dolby_vision_cuva_priority, uint, 0664);
+MODULE_PARM_DESC(dolby_vision_cuva_priority, "\n dolby_vision_cuva_priority\n");
+
 static unsigned int primary_debug;
 module_param(primary_debug, uint, 0664);
 MODULE_PARM_DESC(primary_debug, "\n primary_debug\n");
@@ -3413,8 +3417,12 @@ static int dolby_vision_policy_process
 	if (src_format == FORMAT_MVC)
 		return mode_check(mode, DOLBY_VISION_OUTPUT_MODE_BYPASS, src_format, "dovi output");
 
-	if (src_format == FORMAT_CUVA)
+	/* Check DV priority first if set */
+	if (!dolby_vision_cuva_priority && (src_format == FORMAT_DOVI || src_format == FORMAT_DOVI_LL)) {
+		/* Let DV process normally */
+	} else if (src_format == FORMAT_CUVA) {
 		return mode_check(mode, DOLBY_VISION_OUTPUT_MODE_BYPASS, src_format, "dovi output");
+	}
 
 	if (dolby_vision_policy == DOLBY_VISION_FORCE_OUTPUT_MODE)
 		return mode_check(mode, *mode, src_format, "dovi output");
@@ -7652,6 +7660,36 @@ static ssize_t dv_video_on_show
 	return len;
 }
 
+static ssize_t amdolby_vision_cuva_priority_show
+		(struct class *cla,
+		 struct class_attribute *attr,
+		 char *buf)
+{
+	ssize_t len = 0;
+
+	len += sprintf(buf + len, "%d\n", dolby_vision_cuva_priority);
+	return len;
+}
+
+static ssize_t amdolby_vision_cuva_priority_store
+		(struct class *cla,
+		 struct class_attribute *attr,
+		 const char *buf,
+		 size_t count)
+{
+	unsigned int val;
+
+	if (kstrtouint(buf, 10, &val))
+		return -EINVAL;
+
+	if (val > 1)
+		return -EINVAL;
+
+	dolby_vision_cuva_priority = val;
+	pr_info("dolby_vision_cuva_priority set to %d\n", dolby_vision_cuva_priority);
+	return count;
+}
+
 static struct class_attribute amdolby_vision_class_attrs[] = {
 	__ATTR(ko_info, 0444,
 	amdolby_vision_ko_info_show, NULL),
@@ -7669,6 +7707,8 @@ static struct class_attribute amdolby_vision_class_attrs[] = {
 	       amdolby_vision_dv_support_info_show, NULL),
 	__ATTR(dv_video_on, 0444,
 	       dv_video_on_show, NULL),
+	__ATTR(cuva_priority, 0644,
+	       amdolby_vision_cuva_priority_show, amdolby_vision_cuva_priority_store),
 	__ATTR_NULL
 };
 

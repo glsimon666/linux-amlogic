@@ -536,7 +536,7 @@ MODULE_PARM_DESC(hdr10_plus_process_mode, "\n current hdr10_plus_process_mode\n"
 /* 0:bypass, 1:cuva->sdr, 2:cuva->hdr, 3:cuva->hlg 4:cuva->hdr10p*/
 uint cuva_hdr_process_mode[VD_PATH_MAX];
 uint cur_cuva_hdr_process_mode[VD_PATH_MAX] = {PROC_OFF, PROC_OFF};
-module_param_array(cuva_hdr_process_mode, uint, &vd_path_max, 0444);
+module_param_array(cuva_hdr_process_mode, uint, &vd_path_max, 0644);
 MODULE_PARM_DESC(cuva_hdr_process_mode, "\n current cuva_hdr_process_mode\n");
 
 /* 0:bypass, 1:hdr10p->hdr, 2:hdr10p->sdr, 3:hdr10p->hlg */

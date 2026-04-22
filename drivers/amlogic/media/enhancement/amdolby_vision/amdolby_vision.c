@@ -3282,8 +3282,9 @@ static bool vf_is_hdr10_plus(struct vframe_s *vf);
 static bool vf_is_hdr10(struct vframe_s *vf);
 static bool vf_is_hlg(struct vframe_s *vf);
 static bool is_mvc_frame(struct vframe_s *vf);
+static bool is_cuva_frame(struct vframe_s *vf);
 
-static const char *input_str[8] = {
+static const char *input_str[10] = {
 	"NONE",
 	"HDR",
 	"HDR+",
@@ -3291,8 +3292,14 @@ static const char *input_str[8] = {
 	"PRIME",
 	"HLG",
 	"SDR",
-	"MVC"
+	"MVC",
+	"CUVA_HDR",
+	"CUVA_HLG"
 };
+
+#define signal_cuva ((vf->signal_type >> 31) & 1)
+#define signal_color_primaries ((vf->signal_type >> 16) & 0xff)
+#define signal_transfer_characteristic ((vf->signal_type >> 8) & 0xff)
 
 static void update_src_format
 	(enum signal_format_enum src_format, struct vframe_s *vf)
@@ -3304,16 +3311,24 @@ static void update_src_format
 		dolby_vision_src_format = 3;
 	} else {
 		if (vf) {
-			if (vf_is_hdr10_plus(vf))
+			if (is_cuva_frame(vf)) {
+				if ((signal_transfer_characteristic == 14 ||
+					signal_transfer_characteristic == 18) &&
+					signal_color_primaries == 9)
+					dolby_vision_src_format = 9;
+				else if (signal_transfer_characteristic == 16)
+					dolby_vision_src_format = 8;
+			} else if (vf_is_hdr10_plus(vf)) {
 				dolby_vision_src_format = 2;
-			else if (vf_is_hdr10(vf))
+			} else if (vf_is_hdr10(vf)) {
 				dolby_vision_src_format = 1;
-			else if (vf_is_hlg(vf))
+			} else if (vf_is_hlg(vf)) {
 				dolby_vision_src_format = 5;
-			else if (is_mvc_frame(vf))
+			} else if (is_mvc_frame(vf)) {
 				dolby_vision_src_format = 7;
-			else
+			} else {
 				dolby_vision_src_format = 6;
+			}
 		}
 	}
 	if (cur_format != dolby_vision_src_format) {
@@ -3585,14 +3600,14 @@ EXPORT_SYMBOL(is_dovi_dual_layer_frame);
 static bool vf_is_hlg(struct vframe_s *vf)
 {
 	return ((signal_transfer_characteristic == 18) &&
-	        (signal_color_primaries == 9));
+	        (signal_color_primaries == 9) && !signal_cuva);
 }
 
 static bool vf_is_hdr10(struct vframe_s *vf)
 {
 	return ((signal_transfer_characteristic == 16) &&
 	        ((signal_color_primaries == 9) ||
-	         (signal_color_primaries == 2)));
+	         (signal_color_primaries == 2)) && !signal_cuva);
 }
 
 static bool vf_is_hdr10_plus(struct vframe_s *vf)
@@ -3621,7 +3636,7 @@ static bool is_hlg_frame(struct vframe_s *vf)
 	if (!vf) return false;
 
 	return (((get_dolby_vision_hdr_policy() & HDR_BY_DV_F_SRC) == 0) &&
-	         (vf_is_hlg(vf)));
+	         (vf_is_hlg(vf)) && !signal_cuva);
 }
 
 static bool is_hdr10plus_frame(struct vframe_s *vf)

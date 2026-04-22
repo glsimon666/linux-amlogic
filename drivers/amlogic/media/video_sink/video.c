@@ -1081,7 +1081,7 @@ static u32 vpp_crc_viu2_en;
 /* source fmt string */
 const char *src_fmt_str[] = {
 	"SDR", "HDR10", "HDR10+", "HDR Prime", "HLG",
-	"Dolby Vison", "Dolby Vison Low latency", "MVC"
+	"Dolby Vison", "Dolby Vison Low latency", "MVC", "CUVA_HDR", "CUVA_HLG"
 };
 
 atomic_t primary_src_fmt =
@@ -7562,6 +7562,7 @@ EXPORT_SYMBOL(di_unreg_notify);
  *********************************************************/
 #define signal_color_primaries ((vf->signal_type >> 16) & 0xff)
 #define signal_transfer_characteristic ((vf->signal_type >> 8) & 0xff)
+#define signal_cuva ((vf->signal_type >> 31) & 0x1)
 #define PREFIX_SEI_NUT 39
 #define SUFFIX_SEI_NUT 40
 #define SEI_ITU_T_T35 4
@@ -7762,21 +7763,24 @@ s32 update_vframe_src_fmt(
 	if (vf->src_fmt.fmt == VFRAME_SIGNAL_FMT_INVALID) {
 		if ((signal_transfer_characteristic == 18) &&
 		    (signal_color_primaries == 9)) {
-			vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_HLG;
+			if (signal_cuva)
+				vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_CUVA_HLG;
+			else
+				vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_HLG;
 		} else if ((signal_transfer_characteristic == 0x30) &&
-			     ((signal_color_primaries == 9) ||
-			      (signal_color_primaries == 2))) {
+			 ((signal_color_primaries == 9) ||
+			  (signal_color_primaries == 2))) {
 			if (check_media_sei(sei, size, HDR10P))
-				vf->src_fmt.fmt =
-					VFRAME_SIGNAL_FMT_HDR10PLUS;
+				vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_HDR10PLUS;
 			else /* TODO: if need switch to HDR10 */
-				vf->src_fmt.fmt =
-					VFRAME_SIGNAL_FMT_HDR10;
+				vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_HDR10;
 		} else if ((signal_transfer_characteristic == 16) &&
-			     ((signal_color_primaries == 9) ||
-			      (signal_color_primaries == 2))) {
-			vf->src_fmt.fmt =
-				VFRAME_SIGNAL_FMT_HDR10;
+			 ((signal_color_primaries == 9) ||
+			  (signal_color_primaries == 2))) {
+			if (signal_cuva)
+				vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_CUVA_HDR;
+			else
+				vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_HDR10;
 		} else {
 			vf->src_fmt.fmt = VFRAME_SIGNAL_FMT_SDR;
 		}

@@ -3612,7 +3612,7 @@ void set_hdr_to_frame(struct vframe_s *vf)
 		vf->prop.master_display_colour = vf_hdr;
 
 		//config static signal_type for vp9
-		vf->signal_type = (1 << 29)
+		vf->signal_type = (1 << 31)
 			| (5 << 26) /* unspecified */
 			| (0 << 25) /* limit */
 			| (1 << 24) /* color available */

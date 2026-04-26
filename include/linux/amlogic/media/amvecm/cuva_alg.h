@@ -188,4 +188,5 @@ struct aml_cuva_curve_reg_sw {
 };
 
 struct aml_cuva_data_s *get_cuva_data(void);
+void set_cuva_hdr_alg(void (*alg)(struct aml_cuva_data_s *));
 #endif

@@ -70,3 +70,13 @@ int cuva_hdr_dbg(void)
 	return 0;
 }
 
+void set_cuva_hdr_alg(void (*alg)(struct aml_cuva_data_s *))
+{
+	struct aml_cuva_data_s *cuva_data = get_cuva_data();
+	if (cuva_data) {
+		cuva_data->cuva_hdr_alg = alg;
+		pr_info("cuva_hdr_alg set to %p\n", alg);
+	}
+}
+EXPORT_SYMBOL(set_cuva_hdr_alg);
+

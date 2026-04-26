@@ -170,6 +170,10 @@ int get_hdr_policy(void);
 int get_primary_policy(void);
 void set_cur_hdr_policy(uint policy);
 enum output_format_e get_force_output(void);
+
+/* 0: follow sink, 1: follow source, 2: debug */
+extern uint cuva_hdr_policy;
+extern uint cur_cuva_hdr_policy;
 void set_force_output(enum output_format_e output);
 
 /* 0: hdr->hdr, 1:hdr->sdr, 2:hdr->hlg */

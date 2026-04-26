@@ -179,6 +179,7 @@ int hdr_policy_process(
 	tx_hdr10_plus_support = hdr10_plus_support;
 
 	cur_hdr_policy = get_hdr_policy();
+	cur_cuva_hdr_policy = cuva_hdr_policy;
 	if (is_dolby_vision_enable()) {
 		/* sync hdr_policy with dolby_vision_policy */
 		/* get current dolby_vision_mode */
@@ -189,8 +190,8 @@ int hdr_policy_process(
 	}
 	pr_csc(4, "am_vecm: is_dolby_vision_enable()=%d, is_dolby_vision_on()=%d, dv_policy=%d, dv_mode=%d, dv_format=%d, dv_hdr_policy=%d\n",
 		is_dolby_vision_enable(), is_dolby_vision_on(), dv_policy, dv_mode, dv_format, dv_hdr_policy);
-	pr_csc(4, "am_vecm: cur_hdr_policy=%d, vd_path=%d, get_hdr_module_status(vd_path)=%d, source_format[vd_path]=%d, target_format[VD1_PATH]=%d, sink_hdr_support(vinfo)=%d, is_video_layer_on(VD2_PATH)=%d\n",
-		cur_hdr_policy, vd_path, get_hdr_module_status(vd_path), source_format[vd_path], target_format[VD1_PATH], sink_hdr_support(vinfo), is_video_layer_on(VD2_PATH));
+	pr_csc(4, "am_vecm: cur_hdr_policy=%d, cur_cuva_hdr_policy=%d, vd_path=%d, get_hdr_module_status(vd_path)=%d, source_format[vd_path]=%d, target_format[VD1_PATH]=%d, sink_hdr_support(vinfo)=%d, is_video_layer_on(VD2_PATH)=%d\n",
+		cur_hdr_policy, cur_cuva_hdr_policy, vd_path, get_hdr_module_status(vd_path), source_format[vd_path], target_format[VD1_PATH], sink_hdr_support(vinfo), is_video_layer_on(VD2_PATH));
 
 	if (get_hdr_module_status(vd_path) != HDR_MODULE_ON &&
 	   cur_hdr_policy != 2) {
@@ -201,7 +202,7 @@ int hdr_policy_process(
 		hdr10_plus_process_mode[vd_path] = PROC_BYPASS;
 		cuva_hdr_process_mode[vd_path] = PROC_BYPASS;
 		target_format[vd_path] = BT709;
-	} else if (cur_hdr_policy == 0) {
+	} else if (cur_hdr_policy == 0 || (cur_cuva_hdr_policy == 0 && source_format[vd_path] == HDRTYPE_CUVA_HDR)) {
 		if (source_format[vd_path] == HDRTYPE_MVC) {
 			/* hdr bypass output need sdr */
 			sdr_process_mode[vd_path] = PROC_BYPASS;
@@ -256,29 +257,23 @@ int hdr_policy_process(
 			hdr10_plus_process_mode[vd_path] = PROC_BYPASS;
 			target_format[vd_path] = BT2020_PQ_DYNAMIC;
 		} else if ((source_format[vd_path] == HDRTYPE_CUVA_HDR) &&
-			hdr10_plus_support) {
-			cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_HDR;
-			target_format[vd_path] = BT2020_PQ;
-		} else if ((source_format[vd_path] == HDRTYPE_CUVA_HDR) &&
-			(sink_hdr_support(vinfo)
-			& CUVA_SUPPORT)) {
-			cuva_hdr_process_mode[vd_path] = PROC_BYPASS;
-			target_format[vd_path] = BT2020YUV_BT2020RGB_CUVA;
-		} else if ((source_format[vd_path] == HDRTYPE_CUVA_HDR) &&
-			(sink_hdr_support(vinfo)
-			& HDR_SUPPORT)) {
-			cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_HDR;
-			target_format[vd_path] = BT2020;
-		} else if ((source_format[vd_path] == HDRTYPE_CUVA_HDR) &&
-			(sink_hdr_support(vinfo)
-			& HLG_SUPPORT)) {
-			cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_HLG;
-			target_format[vd_path] = BT2020_HLG;
-		} else if ((source_format[vd_path] == HDRTYPE_CUVA_HDR) &&
-			(sink_hdr_support(vinfo)
-			& SDR_SUPPORT)) {
-			cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_SDR;
-			target_format[vd_path] = BT709;
+			(cur_cuva_hdr_policy == 0 || cur_hdr_policy == 0)) {
+			if (hdr10_plus_support) {
+				cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_HDR;
+				target_format[vd_path] = BT2020_PQ;
+			} else if (sink_hdr_support(vinfo) & CUVA_SUPPORT) {
+				cuva_hdr_process_mode[vd_path] = PROC_BYPASS;
+				target_format[vd_path] = BT2020YUV_BT2020RGB_CUVA;
+			} else if (sink_hdr_support(vinfo) & HDR_SUPPORT) {
+				cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_HDR;
+				target_format[vd_path] = BT2020;
+			} else if (sink_hdr_support(vinfo) & HLG_SUPPORT) {
+				cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_HLG;
+				target_format[vd_path] = BT2020_HLG;
+			} else if (sink_hdr_support(vinfo) & SDR_SUPPORT) {
+				cuva_hdr_process_mode[vd_path] = PROC_CUVA_TO_SDR;
+				target_format[vd_path] = BT709;
+			}
 		} else if (is_dolby_vision_on() && (vd_path == VD2_PATH) &&
 			is_dolby_vision_stb_mode()) {
 			/* vd2 *->ipt when vd1 dolby on */

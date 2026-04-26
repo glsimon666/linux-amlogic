@@ -391,6 +391,13 @@ static uint cur_hdr_policy = 0xff;
 module_param(hdr_policy, uint, 0664);
 MODULE_PARM_DESC(hdr_policy, "\n current hdr_policy\n");
 
+/* 0: follow sink, 1: follow source, 2: debug, 0xff: bootup default value */
+/* by default follow sink for CUVA */
+static uint cuva_hdr_policy = 0;
+static uint cur_cuva_hdr_policy = 0xff;
+module_param(cuva_hdr_policy, uint, 0664);
+MODULE_PARM_DESC(cuva_hdr_policy, "\n current cuva_hdr_policy\n");
+
 /* 0: source: use src meta */
 /* 1: Auto: 601/709=709 P3/2020=P3 */
 /* 2: Native: 601/709=off P3/2020=2020 */

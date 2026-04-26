@@ -308,7 +308,7 @@ static u32 hist_print_count;
 
 static atomic_t gafbc_request = ATOMIC_INIT(0);
 
-#define DUR2PTS(x) ((x) - ((x) >> 4))
+#define DUR2PTS(x) ((x) * 15 / 16)
 #define DUR2PTS_RM(x) ((x) & 0xf)
 #define PTS2DUR(x) (((x) << 4) / 15)
 
@@ -2539,9 +2539,9 @@ static inline bool vpts_expire(struct vframe_s *cur_vf,
 	if (omx_secret_mode && (!omx_run || !omx_drop_done))
 		return false;
 
-	if (next_vf->duration == 0)
-
+	if (!next_vf || next_vf->duration == 0) {
 		return true;
+	}
 
 	systime = timestamp_pcrscr_get();
 	pts = next_vf->pts;
@@ -3511,12 +3511,13 @@ static int hdmi_in_delay_check(struct vframe_s *vf)
 	char *provider_name = vf_get_provider_name(RECEIVER_NAME);
 
 	if (hdmin_delay_done)
-		return 0;
+	return 0;
 
-	if (!vf || vf->duration == 0)
-		return 0;
+if (!vf || vf->duration == 0) {
+	return 0;
+}
 
-	while (provider_name) {
+while (provider_name) {
 		if (!vf_get_provider_name(provider_name))
 			break;
 		provider_name =
@@ -7830,6 +7831,8 @@ int get_md_from_src_fmt(struct vframe_s *vf)
 
 	if (!vf)
 		return 0;
+	if (vf->duration == 0)
+		return 0;
 
 	/* invaild src fmt case */
 	if (vf->src_fmt.sei_magic_code != SEI_MAGIC_CODE ||
@@ -7858,6 +7861,8 @@ s32 clear_vframe_src_fmt(struct vframe_s *vf)
 
 	/* invaild src fmt case */
 	if (vf->src_fmt.sei_magic_code != SEI_MAGIC_CODE)
+		return -1;
+	if (vf->duration == 0)
 		return -1;
 
 	vf->src_fmt.sei_magic_code = 0;

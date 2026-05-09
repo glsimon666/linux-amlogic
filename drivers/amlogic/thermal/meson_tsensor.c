@@ -26,6 +26,7 @@
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/cpu_cooling.h>
+#include <linux/amlogic/cpu_version.h>
 
 #include "../../thermal/thermal_core.h"
 
@@ -94,6 +95,14 @@
 #define R1P1_TS_REBOOT_ALL_EN	BIT(30)
 #define R1P1_TS_REBOOT_TIME	(0xff << 16)
 
+/* fallback trim_info for untrimmed g12a/g12b chips */
+#define G12A_P_TSENSOR_TRIM_INFO	0xda008049
+#define G12A_D_TSENSOR_TRIM_INFO	0xda008081
+#define G12B_P_TSENSOR_TRIM_INFO	0xfa008092
+#define G12B_D_TSENSOR_TRIM_INFO	0xfa0080cf
+#define P_TSENSOR_EFUSE_BASE		0xff800268
+#define D_TSENSOR_EFUSE_BASE		0xff800230
+
 /*for all thermal sensor*/
 #define MCELSIUS	1000
 #define MAX_TS_NUM	3
@@ -131,6 +140,7 @@ struct meson_tsensor_data {
 	struct meson_tsensor_platform_data *pdata;
 	void __iomem *base_c;
 	void __iomem *base_e;
+	phys_addr_t efuse_base;
 	int irq;
 	enum soc_type soc;
 	struct work_struct irq_work;
@@ -358,15 +368,31 @@ static int r1p1_tsensor_initialize(struct platform_device *pdev)
 	pr_info("tsensor trim info: 0x%x!\n", trim_info);
 	ver = (trim_info >> 24) & 0xff;
 	/*r1p1 tsensor ver to doing*/
-	if (((ver & 0xf) >> 2) == 0) {
-		ret = ERANGE;
-		pr_info("thermal calibration type not support: 0x%x!\n", ver);
-		goto out;
-	}
-	if ((ver & 0x80)  == 0) {
-		ret = ERANGE;
-		pr_info("thermal calibration data not valid: 0x%x!\n", ver);
-		goto out;
+	if (((ver & 0xf) >> 2) == 0 || (ver & 0x80) == 0) {
+		pr_info("tsensor trim info invalid, try fallback\n");
+		if (is_meson_g12a_cpu() || is_meson_g12b_cpu()) {
+			if (data->efuse_base == P_TSENSOR_EFUSE_BASE) {
+				trim_info = is_meson_g12a_cpu() ?
+					G12A_P_TSENSOR_TRIM_INFO :
+					G12B_P_TSENSOR_TRIM_INFO;
+			} else if (data->efuse_base == D_TSENSOR_EFUSE_BASE) {
+				trim_info = is_meson_g12a_cpu() ?
+					G12A_D_TSENSOR_TRIM_INFO :
+					G12B_D_TSENSOR_TRIM_INFO;
+			} else {
+				pr_info("unknown efuse base, no fallback\n");
+				ret = ERANGE;
+				goto out;
+			}
+			ver = (trim_info >> 24) & 0xff;
+			pr_info("tsensor using fallback trim info: 0x%x!\n",
+				trim_info);
+		} else {
+			pr_info("thermal calibration data not valid: 0x%x!\n",
+				ver);
+			ret = ERANGE;
+			goto out;
+		}
 	}
 	data->trim_info = trim_info;
 
@@ -662,6 +688,7 @@ static int meson_map_dt_data(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to ioremap memory\n");
 		return -ENOMEM;
 	}
+	data->efuse_base = res.start;
 	pdata = devm_kzalloc(&pdev->dev,
 			     sizeof(struct meson_tsensor_platform_data),
 			     GFP_KERNEL);

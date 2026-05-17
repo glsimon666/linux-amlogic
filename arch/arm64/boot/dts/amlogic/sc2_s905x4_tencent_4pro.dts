@@ -110,6 +110,10 @@
 	/delete-node/ tdm_clkb_pins;
 };
 
+&uart_E {
+	status = "okay";
+};
+
 &pcie_A {
 	status = "okay";
 };

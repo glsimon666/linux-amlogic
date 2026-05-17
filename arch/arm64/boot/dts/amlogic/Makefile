@@ -40,6 +40,7 @@ dtb-$(CONFIG_ARM64) += sc2_s905x4_4g.dtb
 dtb-$(CONFIG_ARM64) += sc2_s905x4_4g_1gbit.dtb
 dtb-$(CONFIG_ARM64) += sc2_s905x4_ugoos_am7.dtb
 dtb-$(CONFIG_ARM64) += sc2_s905x4_ugoos_x4.dtb
+dtb-$(CONFIG_ARM64) += sc2_s905x4_tencent_4pro.dtb
 dtb-$(CONFIG_ARM64) += sc2_s905x4_buzztv_x5_2g.dtb
 dtb-$(CONFIG_ARM64) += sc2_s905x4_buzztv_x5_2g_1gbit.dtb
 dtb-$(CONFIG_ARM64) += sc2_s905x4_buzztv_x5_4g.dtb

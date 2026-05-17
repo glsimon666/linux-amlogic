@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2024 CoreELEC
+ *
+ * Based on sc2_s905x4_ugoos_x4.dts
+ */
+
+#include "coreelec_sc2.dtsi"
+
+/ {
+	model = "Tencent 4Pro";
+	coreelec-dt-id = "sc2_s905x4_tencent_4pro";
+
+	/delete-node/ memory@00000000;
+
+	wifi{
+		dhd_static_buf;
+	};
+
+	gpioleds {
+		/delete-node/ sys_led;
+
+		net_red {
+			label = "net_red";
+			gpios = <&gpio GPIOD_8 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "default-on";
+			retain-state-shutdown;
+		};
+
+		net_green {
+			label = "net_green";
+			gpios = <&gpio GPIOD_9 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "default-on";
+			retain-state-suspended;
+		};
+
+		net_blue {
+			label = "net_blue";
+			gpios = <&gpio GPIOD_10 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "default-on";
+			retain-state-shutdown;
+		};
+	};
+
+	auge_sound {
+		avout_mute-gpios = <&gpio GPIOD_2 GPIO_ACTIVE_HIGH>;
+
+		aml-audio-card,dai-link@1 {
+			codec {
+				sound-dai = <&amlogic_codec>;
+			};
+		};
+	};
+
+	cvbsout {
+		/delete-property/ switch-default-enable;
+		/delete-property/ switch-default-disable;
+		/delete-property/ out-switch-gpios;
+	};
+
+	regulator-vbus_usb {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_usb";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&gpio GPIOH_5 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+};
+
+&pinctrl_periphs {
+	/delete-node/ tdm_b;
+
+	tdmb_mclk: tdmb_mclk {
+		mux {
+			groups = "mclk0_a";
+			function = "mclk0";
+			drive-strength = <2>;
+		};
+	};
+
+	tdmin_b:tdmin_b {
+		mux {
+			groups = "tdmb_din1";
+			function = "tdmb_in";
+			drive-strength = <2>;
+		};
+	};
+};
+
+&tdmb {
+	clocks = <&clkaudio CLKID_AUDIO_MCLK_B
+			&clkaudio CLKID_AUDIO_MCLK_PAD0
+			&clkc CLKID_MPLL1
+			&clkc CLKID_MPLL0
+			&clkaudio CLKID_AUDIO_SPDIFOUT_A>;
+	pinctrl-0 = </*&tdmb_mclk &tdmout_b &tdmin_b*/>;
+	mclk_pad = <0>;
+};
+
+&i2c3 {
+	/delete-node/ es8388;
+};
+
+&pinctrl_audio {
+	/delete-node/ tdm_d0_pins;
+	/delete-node/ tdm_d1_pins;
+	/delete-node/ tdm_clkb_pins;
+};
+
+&sd_emmc_b {
+	status = "okay";
+};

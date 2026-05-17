@@ -972,14 +972,13 @@ static int __init amlogic_pcie_probe(struct platform_device *pdev)
 
 	amlogic_pcie->dev_clk = devm_clk_get(dev, "pcie_hcsl");
 	if (IS_ERR(amlogic_pcie->dev_clk)) {
-		dev_err(dev, "Failed to get pcie pcie_hcsl clock\n");
-		ret = PTR_ERR(amlogic_pcie->dev_clk);
-		goto fail_pcie_phy;
+		dev_info(dev, "pcie_hcsl clock not found, skipping\n");
+		amlogic_pcie->dev_clk = NULL;
+	} else {
+		ret = clk_prepare_enable(amlogic_pcie->dev_clk);
+		if (ret)
+			goto fail_pcie_phy;
 	}
-
-	ret = clk_prepare_enable(amlogic_pcie->dev_clk);
-	if (ret)
-		goto fail_pcie_phy;
 
 	amlogic_pcie->phy_clk = devm_clk_get(dev, "pcie_phy");
 	if (IS_ERR(amlogic_pcie->phy_clk)) {
@@ -1093,7 +1092,8 @@ fail_bus_clk:
 fail_pcie:
 	clk_disable_unprepare(amlogic_pcie->phy_clk);
 fail_pcie_hcsl:
-	clk_disable_unprepare(amlogic_pcie->dev_clk);
+	if (amlogic_pcie->dev_clk)
+		clk_disable_unprepare(amlogic_pcie->dev_clk);
 	port_num--;
 fail_pcie_phy:
 	return ret;
@@ -1111,6 +1111,8 @@ static int __exit amlogic_pcie_remove(struct platform_device *pdev)
 	device_remove_file(&pdev->dev, &dev_attr_phywrite_v2);
 	device_remove_file(&pdev->dev, &dev_attr_phyread_v2);
 
+	if (amlogic_pcie->dev_clk)
+		clk_disable_unprepare(amlogic_pcie->dev_clk);
 	clk_disable_unprepare(amlogic_pcie->clk);
 	clk_disable_unprepare(amlogic_pcie->bus_clk);
 	clk_disable_unprepare(amlogic_pcie->phy_clk);
@@ -1213,7 +1215,8 @@ static int amlogic_pcie_suspend_noirq(struct device *dev)
 
 	usleep_range(500, 510);
 
-	clk_disable_unprepare(amlogic_pcie->dev_clk);
+	if (amlogic_pcie->dev_clk)
+		clk_disable_unprepare(amlogic_pcie->dev_clk);
 	clk_disable_unprepare(amlogic_pcie->clk);
 	clk_disable_unprepare(amlogic_pcie->phy_clk);
 	usleep_range(500, 510);
@@ -1264,7 +1267,8 @@ static int amlogic_pcie_resume_noirq(struct device *dev)
 
 	clk_prepare_enable(amlogic_pcie->phy_clk);
 	clk_prepare_enable(amlogic_pcie->clk);
-	clk_prepare_enable(amlogic_pcie->dev_clk);
+	if (amlogic_pcie->dev_clk)
+		clk_prepare_enable(amlogic_pcie->dev_clk);
 	usleep_range(500, 510);
 
 	if (amlogic_pcie->pcie_num == 1) {
